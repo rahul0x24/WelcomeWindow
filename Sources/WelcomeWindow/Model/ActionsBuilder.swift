@@ -44,4 +44,27 @@ public enum ActionsBuilder {
     ) -> WelcomeActions {
         .three(AnyView(view1), AnyView(view2), AnyView(view3))
     }
+
+    // MARK: - Conditional Support
+
+    /// Builds a conditional branch for the first case (e.g. `if`).
+    /// - Parameter component: The actions produced by the `if` branch.
+    /// - Returns: The provided `WelcomeActions`.
+    public static func buildEither(first component: WelcomeActions) -> WelcomeActions {
+        component
+    }
+
+    /// Builds a conditional branch for the second case (e.g. `else`).
+    /// - Parameter component: The actions produced by the `else` branch.
+    /// - Returns: The provided `WelcomeActions`.
+    public static func buildEither(second component: WelcomeActions) -> WelcomeActions {
+        component
+    }
+
+    /// Builds an optional set of actions (e.g. `if` without `else`).
+    /// - Parameter component: The optional actions.
+    /// - Returns: The unwrapped actions or `.none` if `nil`.
+    public static func buildOptional(_ component: WelcomeActions?) -> WelcomeActions {
+        component ?? .none
+    }
 }
