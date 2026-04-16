@@ -9,13 +9,17 @@ import SwiftUI
 
 /// A customizable welcome window scene supporting up to three content views
 /// and an optional custom recent projects list.
-public struct WelcomeWindow<RecentsView: View, SubtitleView: View>: Scene {
-
+public struct WelcomeWindow<
+    RecentsView: View,
+    SubtitleView: View,
+    Wrapper: View
+>: Scene {
     private let buildActions: (_ dismissWindow: @escaping () -> Void) -> WelcomeActions
     private let customRecentsList: ((_ dismissWindow: @escaping () -> Void) -> RecentsView)?
     private let onDrop: (@Sendable (_ url: URL, _ dismiss: @escaping () -> Void) -> Void)?
     private let subtitleView: (() -> SubtitleView)?
     private let openHandler: WelcomeOpenHandler?
+    private let wrapperView: (WelcomeWindowView<RecentsView, SubtitleView>) -> Wrapper
 
     let iconImage: Image?
     let title: String?
@@ -35,7 +39,8 @@ public struct WelcomeWindow<RecentsView: View, SubtitleView: View>: Scene {
         customRecentsList: ((_ dismissWindow: @escaping () -> Void) -> RecentsView)? = nil,
         subtitleView: (() -> SubtitleView)? = nil,
         onDrop: (@Sendable (_ url: URL, _ dismiss: @escaping () -> Void) -> Void)? = nil,
-        openHandler: WelcomeOpenHandler? = nil
+        openHandler: WelcomeOpenHandler? = nil,
+        @ViewBuilder wrapperView: @escaping (WelcomeWindowView<RecentsView, SubtitleView>) -> Wrapper
     ) {
         self.iconImage = iconImage
         self.title = title
@@ -44,19 +49,21 @@ public struct WelcomeWindow<RecentsView: View, SubtitleView: View>: Scene {
         self.subtitleView = subtitleView
         self.onDrop = onDrop
         self.openHandler = openHandler
+        self.wrapperView = wrapperView
     }
 
     public var body: some Scene {
-
         Window("Welcome To \(Bundle.displayName)", id: DefaultSceneID.welcome) {
-            WelcomeWindowView(
-                iconImage: iconImage,
-                title: title,
-                subtitleView: subtitleView,
-                buildActions: buildActions,
-                onDrop: onDrop,
-                customRecentsList: customRecentsList,
-                openHandler: openHandler
+            wrapperView(
+                WelcomeWindowView(
+                    iconImage: iconImage,
+                    title: title,
+                    subtitleView: subtitleView,
+                    buildActions: buildActions,
+                    onDrop: onDrop,
+                    customRecentsList: customRecentsList,
+                    openHandler: openHandler
+                )
             )
             .frame(width: 740, height: isMacOS26 ? 460 - 28 : 460)
             .task {
@@ -89,10 +96,24 @@ public struct WelcomeWindow<RecentsView: View, SubtitleView: View>: Scene {
 ///
 public typealias WelcomeOpenHandler = @MainActor (_ urls: [URL], _ dismiss: @escaping () -> Void) -> Void
 
+// MARK: - Identity Wrapper
+
+public struct IdentityWrapper<Content: View>: View {
+    let content: Content
+
+    public var body: some View {
+        content
+    }
+}
 // ──────────────────────────────────────────────────────────────
 // 1)  NEITHER a custom recents list NOR a subtitle view
 // ──────────────────────────────────────────────────────────────
-extension WelcomeWindow where RecentsView == EmptyView, SubtitleView == EmptyView {
+extension WelcomeWindow
+where
+    RecentsView == EmptyView,
+    SubtitleView == EmptyView,
+    Wrapper == IdentityWrapper<WelcomeWindowView<RecentsView, SubtitleView>>
+{
     /// Creates a welcome window without a custom recent-projects list
     /// *and* without a custom subtitle view.
     public init(
@@ -109,7 +130,8 @@ extension WelcomeWindow where RecentsView == EmptyView, SubtitleView == EmptyVie
             customRecentsList: nil,
             subtitleView: nil,
             onDrop: onDrop,
-            openHandler: openHandler
+            openHandler: openHandler,
+            wrapperView: { IdentityWrapper(content: $0) }
         )
     }
 }
@@ -117,7 +139,11 @@ extension WelcomeWindow where RecentsView == EmptyView, SubtitleView == EmptyVie
 // ──────────────────────────────────────────────────────────────
 // 2)  ONLY a custom subtitle view
 // ──────────────────────────────────────────────────────────────
-extension WelcomeWindow where RecentsView == EmptyView {
+extension WelcomeWindow
+where
+    RecentsView == EmptyView,
+    Wrapper == IdentityWrapper<WelcomeWindowView<RecentsView, SubtitleView>>
+{
     /// Creates a welcome window that shows a custom subtitle view
     /// but no custom recent-projects list.
     public init(
@@ -135,7 +161,8 @@ extension WelcomeWindow where RecentsView == EmptyView {
             customRecentsList: nil,
             subtitleView: subtitleView,
             onDrop: onDrop,
-            openHandler: openHandler
+            openHandler: openHandler,
+            wrapperView: { IdentityWrapper(content: $0) }
         )
     }
 }
@@ -143,7 +170,11 @@ extension WelcomeWindow where RecentsView == EmptyView {
 // ──────────────────────────────────────────────────────────────
 // 3)  ONLY a custom recent-projects list
 // ──────────────────────────────────────────────────────────────
-extension WelcomeWindow where SubtitleView == EmptyView {
+extension WelcomeWindow
+where
+    SubtitleView == EmptyView,
+    Wrapper == IdentityWrapper<WelcomeWindowView<RecentsView, SubtitleView>>
+{
     /// Creates a welcome window that shows a custom recent-projects list
     /// but no custom subtitle view.
     public init(
@@ -161,7 +192,8 @@ extension WelcomeWindow where SubtitleView == EmptyView {
             customRecentsList: customRecentsList,
             subtitleView: nil,
             onDrop: onDrop,
-            openHandler: openHandler
+            openHandler: openHandler,
+            wrapperView: { IdentityWrapper(content: $0) }
         )
     }
 }
